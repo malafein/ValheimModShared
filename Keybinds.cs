@@ -62,8 +62,20 @@ namespace malafein.Valheim.Shared
             new Modifier { Left = KeyCode.LeftAlt, Right = KeyCode.RightAlt, Label = "Alt" }
         };
 
+        // ZInput registers each mouse button under a raw name as well as under the actions
+        // bound to it. Nothing in the game reads these names, so sharing them isn't a conflict;
+        // a real action on the same button (Attack, Block) is still reported.
+        private static readonly string[] RawMouseButtons =
+        {
+            "MouseLeft",
+            "MouseRight",
+            "MouseMiddle",
+            "MouseForward",
+            "MouseBack"
+        };
+
         private static readonly List<Binding> s_bindings = new List<Binding>();
-        private static readonly HashSet<string> s_ignoredVanillaButtons = new HashSet<string>();
+        private static readonly HashSet<string> s_ignoredVanillaButtons = new HashSet<string>(RawMouseButtons);
         private static List<string> s_lastConflicts = new List<string>();
 
         // Re-checks conflicts whenever any setting in the mod's config changes. The check is

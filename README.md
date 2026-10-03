@@ -5,7 +5,7 @@ Source shared by malafein's Valheim mods. It's added to each mod repo as a git s
 
 - `Log.cs`: logging through the mod's BepInEx log source, with Debug filtered by BepInEx at runtime
   (define `STRIP_DEBUG_LOG` in a build to drop it).
-- `Keybinds.cs`: shortcut matching (either-side modifiers, exact or at-least), hover-prompt
+- `Keybinds.cs`: shortcut matching (left and right modifiers kept distinct, exact or at-least), hover-prompt
   formatting, the `Player.TakeInput()` gate, and a warning when a shortcut collides with a
   vanilla binding.
 

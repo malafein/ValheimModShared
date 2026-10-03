@@ -10,12 +10,12 @@ namespace malafein.Valheim.Shared
 {
     internal enum ModifierMatch
     {
-        // Every listed modifier held, and no unlisted Shift/Ctrl/Alt, so E, Shift + E and
-        // Alt + E stay distinct.
+        // Every listed modifier held, and no unlisted Shift/Ctrl/Alt, so E, Left Shift + E and
+        // Left Alt + E stay distinct.
         Exact,
 
         // Every listed modifier held; extra held modifiers are ignored, so a binding still
-        // fires while sprinting with Shift held.
+        // fires while sprinting with Left Shift held.
         AtLeast
     }
 
@@ -38,28 +38,33 @@ namespace malafein.Valheim.Shared
             public string Context;
         }
 
-        private class Modifier
-        {
-            public KeyCode Left;
-            public KeyCode Right;
-            public string Label;
-
-            public bool IsHeld => ZInput.GetKey(Left, false) || ZInput.GetKey(Right, false);
-            public bool Matches(KeyCode key) => key == Left || key == Right;
-            public bool IsIn(KeyboardShortcut shortcut) => shortcut.Modifiers.Any(Matches);
-        }
-
         private const string DefaultContext = "";
 
         private static readonly MethodInfo TakeInputMethod = AccessTools.Method(typeof(Player), "TakeInput");
         private static readonly FieldInfo ButtonsField = AccessTools.Field(typeof(ZInput), "m_buttons");
         private static readonly MethodInfo KeyCodeToPathMethod = AccessTools.Method(typeof(ZInput), "KeyCodeToPath");
 
-        private static readonly Modifier[] Modifiers =
+        // Left and right are separate modifiers, as in the game itself: vanilla crouches on Left
+        // Ctrl and sprints on Left Shift, leaving the right-hand keys free for shortcuts. Listed
+        // in the order Format shows them.
+        private static readonly KeyCode[] ModifierKeys =
         {
-            new Modifier { Left = KeyCode.LeftControl, Right = KeyCode.RightControl, Label = "Ctrl" },
-            new Modifier { Left = KeyCode.LeftShift, Right = KeyCode.RightShift, Label = "Shift" },
-            new Modifier { Left = KeyCode.LeftAlt, Right = KeyCode.RightAlt, Label = "Alt" }
+            KeyCode.LeftControl,
+            KeyCode.RightControl,
+            KeyCode.LeftShift,
+            KeyCode.RightShift,
+            KeyCode.LeftAlt,
+            KeyCode.RightAlt
+        };
+
+        private static readonly Dictionary<KeyCode, string> ModifierLabels = new Dictionary<KeyCode, string>
+        {
+            { KeyCode.LeftControl, "Left Ctrl" },
+            { KeyCode.RightControl, "Right Ctrl" },
+            { KeyCode.LeftShift, "Left Shift" },
+            { KeyCode.RightShift, "Right Shift" },
+            { KeyCode.LeftAlt, "Left Alt" },
+            { KeyCode.RightAlt, "Right Alt" }
         };
 
         // ZInput registers each mouse button under a raw name as well as under the actions
@@ -114,36 +119,36 @@ namespace malafein.Valheim.Shared
             if (mainKey == KeyCode.None || !ZInput.IsKeyCodeValid(mainKey)) return false;
             if (!ZInput.GetKeyDown(mainKey, false)) return false;
 
-            // Either side satisfies Shift/Ctrl/Alt. Any other key listed as a modifier must
-            // be held as-is.
-            foreach (KeyCode key in shortcut.Modifiers)
-            {
-                Modifier modifier = Modifiers.FirstOrDefault(m => m.Matches(key));
-                bool held = modifier != null ? modifier.IsHeld : ZInput.GetKey(key, false);
-                if (!held) return false;
-            }
+            if (!shortcut.Modifiers.All(key => ZInput.GetKey(key, false))) return false;
 
             if (match == ModifierMatch.AtLeast) return true;
 
-            return Modifiers.All(m => m.IsIn(shortcut) || !m.IsHeld);
+            return ModifierKeys.All(key => shortcut.Modifiers.Contains(key) || !ZInput.GetKey(key, false));
+        }
+
+        // The Shift/Ctrl/Alt keys held right now, by side. For capturing a new binding: Unity's
+        // GUI events only report that a modifier is held, not which side.
+        internal static KeyCode[] HeldModifiers()
+        {
+            return ModifierKeys.Where(key => ZInput.GetKey(key, false)).ToArray();
         }
 
         // Player.TakeInput() is false while chat, menus, or the inventory have focus. The Input
         // System reads raw keys regardless of UI focus, so without this gate typing a capital E
-        // in chat would trigger Shift + E. It's protected, so it's reached by reflection.
+        // in chat would trigger Left Shift + E. It's protected, so it's reached by reflection.
         internal static bool CanTakeInput(Player player)
         {
             return (bool)TakeInputMethod.Invoke(player, null);
         }
 
-        // "Shift + E" style text for hover prompts, so they always show the configured keys.
+        // "Left Shift + E" style text for hover prompts, so they always show the configured keys.
         internal static string Format(KeyboardShortcut shortcut)
         {
             if (shortcut.MainKey == KeyCode.None) return "Not set";
 
             var parts = new List<string>();
-            parts.AddRange(Modifiers.Where(m => m.IsIn(shortcut)).Select(m => m.Label));
-            parts.AddRange(shortcut.Modifiers.Where(key => !Modifiers.Any(m => m.Matches(key))).Select(key => key.ToString()));
+            parts.AddRange(ModifierKeys.Where(key => shortcut.Modifiers.Contains(key)).Select(key => ModifierLabels[key]));
+            parts.AddRange(shortcut.Modifiers.Where(key => !ModifierLabels.ContainsKey(key)).Select(key => key.ToString()));
             parts.Add(shortcut.MainKey.ToString());
             return string.Join(" + ", parts);
         }

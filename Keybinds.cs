@@ -28,7 +28,6 @@ namespace malafein.Valheim.Shared
     //   Keybinds.Init(Config, "Use");                  // vanilla buttons shared on purpose
     //   Keybinds.Add(RenameShipKey);
     //   Keybinds.Add("Slot 1", () => slot.Value.Shortcut);
-    [HarmonyPatch]
     internal static class Keybinds
     {
         private class Binding
@@ -168,29 +167,33 @@ namespace malafein.Valheim.Shared
             }
         }
 
-        // ZInput.Load applies saved rebinds at startup, Save runs when the player saves the
-        // controls menu, and ResetToDefault restores vanilla bindings. Re-check after each.
-        // The startup Load is called from inside the ZInput constructor, before ZInput.instance
-        // is assigned, so the hooks pass along the instance being patched.
-        [HarmonyPatch(typeof(ZInput), nameof(ZInput.Load))]
-        [HarmonyPostfix]
-        private static void Postfix_ZInputLoad(ZInput __instance)
+        [HarmonyPatch]
+        private static class Patches
         {
-            CheckConflicts(__instance);
-        }
+            // ZInput.Load applies saved rebinds at startup, Save runs when the player saves the
+            // controls menu, and ResetToDefault restores vanilla bindings. Re-check after each.
+            // The startup Load is called from inside the ZInput constructor, before ZInput.instance
+            // is assigned, so the hooks pass along the instance being patched.
+            [HarmonyPatch(typeof(ZInput), nameof(ZInput.Load))]
+            [HarmonyPostfix]
+            private static void Postfix_ZInputLoad(ZInput __instance)
+            {
+                CheckConflicts(__instance);
+            }
 
-        [HarmonyPatch(typeof(ZInput), nameof(ZInput.Save))]
-        [HarmonyPostfix]
-        private static void Postfix_ZInputSave(ZInput __instance)
-        {
-            CheckConflicts(__instance);
-        }
+            [HarmonyPatch(typeof(ZInput), nameof(ZInput.Save))]
+            [HarmonyPostfix]
+            private static void Postfix_ZInputSave(ZInput __instance)
+            {
+                CheckConflicts(__instance);
+            }
 
-        [HarmonyPatch(typeof(ZInput), nameof(ZInput.ResetToDefault))]
-        [HarmonyPostfix]
-        private static void Postfix_ZInputResetToDefault(ZInput __instance)
-        {
-            CheckConflicts(__instance);
+            [HarmonyPatch(typeof(ZInput), nameof(ZInput.ResetToDefault))]
+            [HarmonyPostfix]
+            private static void Postfix_ZInputResetToDefault(ZInput __instance)
+            {
+                CheckConflicts(__instance);
+            }
         }
 
         // Warns when a shortcut's main key is also bound to a vanilla action (vanilla mostly

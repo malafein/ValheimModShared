@@ -14,6 +14,9 @@ Source shared by malafein's Valheim mods. It's added to each mod repo as a git s
 - Plain `.cs` files only. A `.csproj` here would be swept into every mod's build.
 - Everything is `internal` and lives in `malafein.Valheim.Shared`.
 - Don't reference a mod's `Plugin` class. Mods pass in what the library needs.
+- Targets `net48` mods built against the game's own assemblies (Valheim 1.0's Unity 6 Mono: .NET
+  Framework 4.8 API + .NET Standard 2.1). A net462 mod must move to net48 before updating its
+  pointer past the last net462-safe commit, `fc651c8`.
 
 ## Using it in a mod
 

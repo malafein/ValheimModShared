@@ -218,18 +218,16 @@ namespace malafein.Valheim.Shared
         private static void FindAndLogConflicts(ZInput input)
         {
             if (input == null || ButtonsField == null || KeyCodeToPathMethod == null) return;
-            if (!(ButtonsField.GetValue(input) is Dictionary<string, ZInput.ButtonDef> buttons)) return;
+            if (ButtonsField.GetValue(input) is not Dictionary<string, ZInput.ButtonDef> buttons) return;
 
             var conflicts = new List<string>();
             var active = s_bindings
-                .Select(b => new { Binding = b, Shortcut = b.Shortcut() })
+                .Select(b => (Binding: b, Shortcut: b.Shortcut()))
                 .Where(b => b.Shortcut.MainKey != KeyCode.None)
                 .ToList();
 
-            foreach (var item in active)
+            foreach (var (binding, shortcut) in active)
             {
-                Binding binding = item.Binding;
-                KeyboardShortcut shortcut = item.Shortcut;
                 KeyCode mainKey = shortcut.MainKey;
                 if (!ZInput.IsKeyCodeValid(mainKey))
                 {
@@ -251,7 +249,7 @@ namespace malafein.Valheim.Shared
             }
 
             var duplicates = active
-                .GroupBy(b => new { b.Binding.Context, Keys = Format(b.Shortcut) })
+                .GroupBy(b => (b.Binding.Context, Keys: Format(b.Shortcut)))
                 .Where(g => g.Count() > 1);
 
             foreach (var group in duplicates)
